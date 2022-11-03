@@ -1,16 +1,29 @@
+use std::env;
+
 #[tokio::main]
 async fn main() {
-    let path = std::env::args().nth(1).unwrap_or(".".into());
-    let port = std::env::args()
+    let path = env::args().nth(1).unwrap_or(
+        env::current_dir()
+            .unwrap()
+            .to_str()
+            .unwrap_or(".")
+            .to_string(),
+    );
+
+    let port = env::args()
         .nth(2)
-        .unwrap_or("23333".into())
+        .unwrap_or("2333".into())
         .parse::<u16>()
         .unwrap_or(23333_u16);
+
     println!(
-        "Static File Http Server Ver 0.0.1\nRoot Dir: {}\nUsage: httpSvr [root_dir_default_.] [port_default_23333]\nhttp://127.0.0.1:{}\n",
-        path,port
+        "silver:: a static files server ver {}\n www root: {}\nUsage: silver [root_dir=$PWD] [port=2333]\nhttp://0.0.0.0:{}\n",
+        env!("CARGO_PKG_VERSION"), path,port
     );
+
     let api = warp::fs::dir(path);
+
     let server = warp::serve(api);
+
     server.run(([0, 0, 0, 0], port)).await;
 }

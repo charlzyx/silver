@@ -28,7 +28,7 @@ async fn main() {
         .nth(2)
         .unwrap_or("2333".into())
         .parse::<u16>()
-        .unwrap_or(23333_u16);
+        .unwrap_or(2333_u16);
 
     println!(
         "silver:: a static files server ver {}\n www root: {}\nUsage: silver [root_dir=$PWD] [port=2333]\nhttp://0.0.0.0:{}\n",

@@ -1,7 +1,7 @@
 # silver
 
 ## Overview
-Super Simple static fields web server as a single executable, build for [tauri app sidecar](https://tauri.app/zh/v1/guides/building/sidecar/).
+Super simple static server as a single executable, build for [tauri app sidecar](https://tauri.app/zh/v1/guides/building/sidecar/).
 
 ## Features
 - Built with warp and [Tokio](https://github.com/tokio-rs/tokio) and [warp](https://github.com/seanmonstar/warp)
@@ -9,7 +9,7 @@ Super Simple static fields web server as a single executable, build for [tauri a
 
 ## SourceCode
 
-That's all.
+**👇That's all.**
 
 ```rust
 use std::env;

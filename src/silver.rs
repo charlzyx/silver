@@ -1,7 +1,6 @@
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
-use local_ip_address::local_ip;
 
 pub fn findup(mut p: PathBuf, root: PathBuf) -> PathBuf {
     if p == root {

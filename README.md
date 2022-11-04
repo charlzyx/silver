@@ -1,10 +1,12 @@
 # silver
 
 ## Overview
-Super simple static server as a single executable, `try_files` automic, build for [tauri app sidecar](https://tauri.app/zh/v1/guides/building/sidecar/).
+Super simple and smart static server as a single executable, build for [tauri app sidecar](https://tauri.app/zh/v1/guides/building/sidecar/).
 
 ## Features
-- Built with [rouille](https://github.com/tomaka/rouille) which powerd by [tiny-http](https://github.com/tiny-http/tiny-http)
+-  `try_files` automic, useful for web app history router.
+- reverse proxy by headers `silverproxy`, look at bottom.
+
 
 ## Usage
 
@@ -96,3 +98,7 @@ curl --location --request GET 'http://127.0.0.1:2333/api/v5/users/charlzyx/repos
 --header 'silverproxy: gitee.com:80' \
 --header 'silverhost: gitee.com' \
 ```
+
+# Powered by
+- [rouille](https://github.com/tomaka/rouille)
+- [tiny-http](https://github.com/tiny-http/tiny-http)

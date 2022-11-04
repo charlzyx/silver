@@ -55,7 +55,7 @@ pub fn parse() -> (String, SocketAddr, u16) {
     let abs = fs::canonicalize(PathBuf::from(&root)).unwrap();
     let abs_root = format!("{}", abs.to_str().unwrap());
 
-    let host = local_ip.unwrap_or("127.0.0.1");
+    let host = "127.0.0.1";
 
     let port = env::args()
         .nth(2)

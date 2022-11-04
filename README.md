@@ -1,48 +1,10 @@
 # silver
 
 ## Overview
-Super simple static server as a single executable, build for [tauri app sidecar](https://tauri.app/zh/v1/guides/building/sidecar/).
+Super simple static server as a single executable, `try_files` automic, build for [tauri app sidecar](https://tauri.app/zh/v1/guides/building/sidecar/).
 
 ## Features
-- Built with [Tokio](https://github.com/tokio-rs/tokio) and [warp](https://github.com/seanmonstar/warp)
-
-
-## SourceCode
-
-**👇That's all.**
-
-```rust
-use std::env;
-
-#[tokio::main]
-async fn main() {
-    let path = env::args().nth(1).unwrap_or(
-        env::current_dir()
-            .unwrap()
-            .to_str()
-            .unwrap_or(".")
-            .to_string(),
-    );
-
-    let port = env::args()
-        .nth(2)
-        .unwrap_or("2333".into())
-        .parse::<u16>()
-        .unwrap_or(2333_u16);
-
-    println!(
-        "silver:: a static files server ver {}\n www root: {}\nUsage: silver [root_dir=$PWD] [port=2333]\nhttp://0.0.0.0:{}\n",
-        env!("CARGO_PKG_VERSION"), path,port
-    );
-
-    let api = warp::fs::dir(path);
-
-    let server = warp::serve(api);
-
-    server.run(([0, 0, 0, 0], port)).await;
-}
-
-```
+- Built with [rouille](https://github.com/tomaka/rouille) which powerd by [tiny-http](https://github.com/tiny-http/tiny-http)
 
 ## Usage
 
@@ -119,4 +81,18 @@ pub fn serve() {
         }
     });
 }
+```
+## Advance:: proxy
+
+with speical header `silverproxy` with proxy to taget `host:port`,
+**no* `http/https` prefix and last `/` but `port` is required
+
+`silverhost` is not required, if not setting, will be same with `silverproxy`
+
+example
+
+```sh
+curl --location --request GET 'http://127.0.0.1:2333/api/v5/users/charlzyx/repos' \
+--header 'silverproxy: gitee.com:80' \
+--header 'silverhost: gitee.com' \
 ```

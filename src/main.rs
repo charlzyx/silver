@@ -1,29 +1,31 @@
-use ascii::AsciiString;
+#![allow(unreachable_code)]
+#[macro_use]
+extern crate rouille;
+
 use std::fs;
 use std::path::Path;
 
 use local_ip_address::local_ip;
-use tiny_http;
+use mime_guess;
+use rouille::proxy;
+use rouille::{Request, Response};
 
-mod util;
+mod silver;
 
 fn main() {
-    let (root, addr) = util::ready();
-
-    let server = tiny_http::Server::http(addr).unwrap();
-
-    let port = server.server_addr().to_ip().unwrap().port();
+    let (root, addr, port) = silver::parse();
     let my_local_ip = local_ip().unwrap();
 
     println!(
         r#"
-------------------------------------------------------------------------
-silver:: a static files server ver {} ,the www root is: {}
+--------------------------------------------------
+silver:: a static files server ver {}
+www root is: {}
 now listening...
 http://127.0.0.1:{}
-http://{:?}{}
-------------------------------------------------------------------------
-    "#,
+http://{:?}:{}
+--------------------------------------------------
+  "#,
         env!("CARGO_PKG_VERSION"),
         root,
         port,
@@ -31,45 +33,53 @@ http://{:?}{}
         port
     );
 
-    loop {
-        let rq = match server.recv() {
-            Ok(rq) => rq,
-            Err(e) => {
-                println!("some things error: {} \n --said by silver.", e);
-                break;
-            }
+    fn handle_proxy(request: &Request) -> Response {
+        let host = request.header("silverhost");
+
+        let config = match request.header("silverproxy") {
+            Some(h) => proxy::ProxyConfig {
+                addr: h,
+                replace_host: Some(format!("{}", host.unwrap_or(h)).into()),
+            },
+            _ => return Response::empty_404(),
         };
 
-        let url = rq.url().to_string();
-        let maybe = util::try_files(&root, util::raw(&url));
+        // println!("addr {}", &config.addr);
+        // println!("host {}", &config.replace_host.clone().unwrap().to_string());
 
-        if maybe.is_err() {
-            let message = format!("some things error when read file {}\n", maybe.err().unwrap());
-            let resp = tiny_http::Response::from_string(message + " -- said by silver.")
-                .with_status_code(404);
-            let _ = rq.respond(resp);
-        } else {
-            let file_name = maybe.unwrap();
-            let path = Path::new(file_name.to_str().unwrap());
-            // println!("to open file is {}", &file_name.to_str().unwrap());
-            let file = fs::File::open(&file_name);
-
-            let content_type = util::get_content_type(path);
-
-            if file.is_ok() {
-                let response = tiny_http::Response::from_file(file.unwrap());
-
-                let response = response.with_header(tiny_http::Header {
-                    field: "Content-Type".parse().unwrap(),
-                    value: AsciiString::from_ascii(content_type).unwrap(),
-                });
-
-                let _ = rq.respond(response);
-            } else {
-                let resp = tiny_http::Response::from_string("Not Found. -- said by silver.")
-                    .with_status_code(404);
-                let _ = rq.respond(resp);
-            }
-        }
+        proxy::full_proxy(request, config).unwrap()
     }
+    // The `start_server` starts listening forever on the given address.
+    rouille::start_server(&addr, move |request| {
+        if request.header("silverproxy").is_some() {
+            // println!("header proxy {} ", request.header("proxy").unwrap());
+            return handle_proxy(request);
+        }
+        println!("o?");
+        let trytry = silver::try_files(&root, &request.url());
+        if trytry.is_err() {
+            let message = format!(
+                "some things error when read file {}\n",
+                trytry.err().unwrap()
+            );
+
+            Response::text(format!("somthings error {} \n -- said by silver.", message))
+                .with_status_code(502)
+        } else {
+            let file_name = trytry.unwrap();
+            let path = Path::new(file_name.to_str().unwrap());
+
+            let file = match fs::File::open(&file_name) {
+                Ok(f) => f,
+                Err(_) => {
+                    return Response::text("Not Found. -- said by silver.").with_status_code(404)
+                }
+            };
+
+            let mime = mime_guess::from_path(&path).first_or_octet_stream();
+            let content_type = mime.to_string();
+
+            Response::from_file(content_type, file)
+        }
+    });
 }

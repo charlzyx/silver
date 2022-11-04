@@ -1,15 +1,6 @@
-use mime_guess;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
-
-pub fn raw(url: &str) -> &str {
-    if let Some(pos) = url.bytes().position(|c| c == b'?') {
-        url.split_at(pos).0
-    } else {
-        url
-    }
-}
 
 pub fn findup(mut p: PathBuf, root: PathBuf) -> PathBuf {
     if p == root {
@@ -52,7 +43,7 @@ pub fn try_files(base: &str, url: &str) -> Result<PathBuf, std::io::Error> {
     Ok(findup(target.clone(), root))
 }
 
-pub fn ready() -> (String, SocketAddr) {
+pub fn parse() -> (String, SocketAddr, u16) {
     let root = env::args().nth(1).unwrap_or(
         env::current_dir()
             .unwrap()
@@ -74,10 +65,5 @@ pub fn ready() -> (String, SocketAddr) {
 
     let addr: SocketAddr = format!("{}:{}", host, port).parse().unwrap();
 
-    (format!("{}", &abs_root), addr)
-}
-
-pub fn get_content_type(path: &Path) -> String {
-    let mime = mime_guess::from_path(&path).first_or_octet_stream();
-    mime.to_string()
+    (format!("{}", &abs_root), addr, port)
 }

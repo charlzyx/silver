@@ -1,29 +1,75 @@
-use std::env;
+use ascii::AsciiString;
+use std::fs;
+use std::path::Path;
 
-#[tokio::main]
-async fn main() {
-    let path = env::args().nth(1).unwrap_or(
-        env::current_dir()
-            .unwrap()
-            .to_str()
-            .unwrap_or(".")
-            .to_string(),
-    );
+use local_ip_address::local_ip;
+use tiny_http;
 
-    let port = env::args()
-        .nth(2)
-        .unwrap_or("2333".into())
-        .parse::<u16>()
-        .unwrap_or(2333_u16);
+mod util;
+
+fn main() {
+    let (root, addr) = util::ready();
+
+    let server = tiny_http::Server::http(addr).unwrap();
+
+    let port = server.server_addr().to_ip().unwrap().port();
+    let my_local_ip = local_ip().unwrap();
 
     println!(
-        "silver:: a static files server ver {}\n www root: {}\nUsage: silver [root_dir=$PWD] [port=2333]\nhttp://0.0.0.0:{}\n",
-        env!("CARGO_PKG_VERSION"), path,port
+        r#"
+------------------------------------------------------------------------
+silver:: a static files server ver {} ,the www root is: {}
+now listening...
+http://127.0.0.1:{}
+http://{:?}{}
+------------------------------------------------------------------------
+    "#,
+        env!("CARGO_PKG_VERSION"),
+        root,
+        port,
+        my_local_ip,
+        port
     );
 
-    let api = warp::fs::dir(path);
+    loop {
+        let rq = match server.recv() {
+            Ok(rq) => rq,
+            Err(e) => {
+                println!("some things error: {} \n --said by silver.", e);
+                break;
+            }
+        };
 
-    let server = warp::serve(api);
+        let url = rq.url().to_string();
+        let maybe = util::try_files(&root, util::raw(&url));
 
-    server.run(([0, 0, 0, 0], port)).await;
+        if maybe.is_err() {
+            let message = format!("some things error when read file {}\n", maybe.err().unwrap());
+            let resp = tiny_http::Response::from_string(message + " -- said by silver.")
+                .with_status_code(404);
+            let _ = rq.respond(resp);
+        } else {
+            let file_name = maybe.unwrap();
+            let path = Path::new(file_name.to_str().unwrap());
+            // println!("to open file is {}", &file_name.to_str().unwrap());
+            let file = fs::File::open(&file_name);
+
+            let content_type = util::get_content_type(path);
+
+            if file.is_ok() {
+                let response = tiny_http::Response::from_file(file.unwrap());
+
+                let response = response.with_header(tiny_http::Header {
+                    field: "Content-Type".parse().unwrap(),
+                    value: AsciiString::from_ascii(content_type).unwrap(),
+                });
+
+                let _ = rq.respond(response);
+            } else {
+                let resp = tiny_http::Response::from_string("Not Found. -- said by silver.")
+                    .with_status_code(404);
+                let _ = rq.respond(resp);
+            }
+        }
+    }
 }

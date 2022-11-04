@@ -55,7 +55,6 @@ http://{:?}:{}
             // println!("header proxy {} ", request.header("proxy").unwrap());
             return handle_proxy(request);
         }
-        println!("o?");
         let trytry = silver::try_files(&root, &request.url());
         if trytry.is_err() {
             let message = format!(

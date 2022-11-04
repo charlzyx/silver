@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
+use local_ip_address::local_ip;
 
 pub fn findup(mut p: PathBuf, root: PathBuf) -> PathBuf {
     if p == root {
@@ -55,7 +56,7 @@ pub fn parse() -> (String, SocketAddr, u16) {
     let abs = fs::canonicalize(PathBuf::from(&root)).unwrap();
     let abs_root = format!("{}", abs.to_str().unwrap());
 
-    let host = "127.0.0.1";
+    let host = local_ip.unwrap_or("127.0.0.1");
 
     let port = env::args()
         .nth(2)
